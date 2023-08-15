@@ -5,41 +5,38 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 
 public class Receiver {
-    public static void main(String[] args) {
-        // Load the receiver's private key
-        PrivateKey receiverPrivateKey = loadReceiverPrivateKey();
+    private static int keySize = 1024;
+    private static RSA rsa;
 
-        // Load the encrypted message from the file
-        byte[] encryptedMessage = loadEncryptedMessageFromFile();
-
-        // Decrypt the message using the receiver's private key
-        byte[] decryptedMessage = decrypt(encryptedMessage, receiverPrivateKey);
-        System.out.println("Decrypted message: " + new String(decryptedMessage, StandardCharsets.UTF_8));
+    public Receiver() {
+        rsa = new RSA(keySize);
+        uploadPublicKey(rsa.getPublicKey());
+        PrivateKey privateKey = rsa.getPrivateKey();
+        try {
+            while (true) {
+                byte[] encryptedMessage = loadEncryptedMessageFromFile();
+                byte[] decryptedMessage = rsa.decrypt(encryptedMessage, privateKey);
+                System.out.println("Decrypted message: " + new String(decryptedMessage, StandardCharsets.UTF_8));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
-    // Load the receiver's private key from a file (simulate this step)
-    public static PrivateKey loadReceiverPrivateKey() {
-        // Simulated method
-        BigInteger n = new BigInteger("123456789"); // Replace with actual values
-        BigInteger d = new BigInteger("987654321"); // Replace with actual values
-        return new PrivateKey(n, d);
+    private static void uploadPublicKey(PublicKey publicKey) {
+        Path filePath = Paths.get("../publicKey.txt");
+        try {
+            Files.write(filePath, publicKey.getN().toString().getBytes());
+            Files.write(filePath, publicKey.getE().toString().getBytes());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
-    public static byte[] decrypt(byte[] encryptedMessage, PrivateKey privateKey) {
-        // Simulated decryption
-        BigInteger c = new BigInteger(encryptedMessage);
-        BigInteger n = privateKey.getN();
-        BigInteger d = privateKey.getD();
-
-        BigInteger decrypted = c.modPow(d, n);
-        return decrypted.toByteArray();
-    }
-
-    public static byte[] loadEncryptedMessageFromFile() {
+    private static byte[] loadEncryptedMessageFromFile() {
         Path filePath = Paths.get("../encryptedMessage.txt");
         try {
             return Files.readAllBytes(filePath);

@@ -4,44 +4,48 @@ import crypto.*;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.io.FileOutputStream;
-import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Scanner;
 
 public class Sender {
-    public static void main(String[] args) {
-        String message = "Hello, Receiver! This is a secret message.";
-        System.out.println("Original message: " + message);
-
-        // Load the receiver's public key
-        PublicKey receiverPublicKey = loadReceiverPublicKey();
-
-        // Encrypt the message using the receiver's public key
-        byte[] encryptedMessage = encrypt(message.getBytes(StandardCharsets.UTF_8), receiverPublicKey);
-
-        // Save the encrypted message to a file
-        saveEncryptedMessageToFile(encryptedMessage);
-        
-        System.out.println("Encrypted message has been sent to the receiver.");
+    public Sender () {
+        PublicKey publicKey = loadReceiverPublicKey();
+        try {
+            while (true) {
+                String message = readMessageFromConsole();
+                byte[] encryptedMessage = RSA.encrypt(message, publicKey);
+                saveEncryptedMessageToFile(encryptedMessage);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
-    // Load the receiver's public key from a file (simulate this step)
-    public static PublicKey loadReceiverPublicKey() {
-        // Simulated method
-        BigInteger n = new BigInteger("123456789"); // Replace with actual values
-        BigInteger e = new BigInteger("65537");     // Replace with actual values
-        return new PublicKey(n, e);
+    private static String readMessageFromConsole() {
+        System.out.println("Enter message to encrypt: ");
+        try (Scanner scanner = new Scanner(System.in)) {
+            return scanner.nextLine();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
-    public static byte[] encrypt(byte[] message, PublicKey publicKey) {
-        // Simulated encryption
-        BigInteger m = new BigInteger(message);
-        BigInteger n = publicKey.getN();
-        BigInteger e = publicKey.getE();
-
-        BigInteger encrypted = m.modPow(e, n);
-        return encrypted.toByteArray();
+    private static PublicKey loadReceiverPublicKey() {
+        Path filePath = Paths.get("../publicKey.txt");
+        try {
+            BigInteger n = new BigInteger(Files.readAllLines(filePath).get(1));
+            BigInteger e = new BigInteger(Files.readAllLines(filePath).get(2));
+            return new PublicKey(n, e);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
-    public static void saveEncryptedMessageToFile(byte[] encryptedMessage) {
+    private static void saveEncryptedMessageToFile(byte[] encryptedMessage) {
         try (FileOutputStream fos = new FileOutputStream("../encryptedMessage.txt")) {
             fos.write(encryptedMessage);
         } catch (IOException e) {
